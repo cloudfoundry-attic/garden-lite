@@ -1,0 +1,30 @@
+resources:
+- name: garden-lite-git
+  type: git
+  source:
+    uri: https://github.com/tscolari/garden-lite.git
+    branch: master
+    ignore_paths:
+    - ci/
+
+- name: garden-runc-release
+  type: bosh-io-release
+  source:
+    repository: cloudfoundry/garden-runc-release
+
+jobs:
+- name: build
+  serial: true
+  plan:
+  - aggregate:
+    - get: garden-lite-git
+      trigger: true
+    - get: garden-runc-release
+      trigger: true
+  - task: build
+    file: garden-lite-git/ci/tasks/build.yml
+    params:
+      VERSION_PATH: garden-runc-release/version
+      GARDEN_RELEASE_PATH: garden-runc-release/release.tgz
+      VAGRANT_CLOUD_ACCESS_KEY: {{vagrant-cloud-access-key}}
+
