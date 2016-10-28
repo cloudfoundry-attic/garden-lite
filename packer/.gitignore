@@ -1,0 +1,6 @@
+*.tgz
+*.box
+*.iso
+*.vmdk
+*.ovf
+*.vdi

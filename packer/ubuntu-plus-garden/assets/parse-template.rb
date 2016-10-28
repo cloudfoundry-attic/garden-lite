@@ -1,0 +1,1 @@
+../../garden/assets/parse-template.rb

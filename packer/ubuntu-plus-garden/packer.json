@@ -1,0 +1,134 @@
+{
+  "variables": {
+    "garden_release_path": "{{env `GARDEN_RELEASE_PATH`}}",
+    "version": "{{env `VERSION`}}",
+    "vagrant_cloud_access_key": "{{env `VAGRANT_CLOUD_ACCESS_KEY`}}",
+    "vagrant_box_tag": "tscolari/garden-lite"
+  },
+
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "script": "./setup.sh"
+    },
+    {
+      "type": "file",
+      "source": "assets/parse-template.rb",
+      "destination": "/tmp/parse-template.rb"
+    },
+    {
+      "type": "file",
+      "source": "assets/manifest.yml",
+      "destination": "/tmp/manifest.yml"
+    },
+    {
+      "type": "file",
+      "source": "assets/monitrc",
+      "destination": "/tmp/monitrc"
+    },
+    {
+      "type": "shell",
+      "script": "assets/setup-keys.sh"
+    },
+    {
+      "type": "file",
+      "source": "{{user `garden_release_path`}}",
+      "destination": "/tmp/garden-release.tar.gz"
+    },
+    {
+      "type": "shell",
+      "inline": "sudo apt-get install -y ruby monit"
+    },
+    {
+      "type": "shell",
+      "inline": "sudo mv /tmp/monitrc /etc/monit/monitrc"
+    },
+    {
+      "type": "shell",
+      "script": "build-garden.sh",
+      "environment_vars": [
+        "VERSION={{user `version`}}",
+        "GARDEN_RELEASE_PATH=/tmp/garden-release.tar.gz",
+        "MANIFEST_PATH=/tmp/manifest.yml",
+        "TEMPLATER=/tmp/parse-template.rb"
+      ]
+    }
+  ],
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "boot_command": [
+        "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " netcfg/get_domain=vm<wait>",
+        " netcfg/get_hostname=vagrant<wait>",
+        " grub-installer/bootdev=/dev/sda<wait>",
+        " noapic<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 81920,
+      "guest_os_type": "Ubuntu_64",
+      "headless": true,
+      "http_directory": "http",
+      "iso_urls": [
+        "iso/ubuntu-16.04.1-server-amd64.iso",
+        "http://releases.ubuntu.com/16.04/ubuntu-16.04.1-server-amd64.iso"
+      ],
+      "iso_checksum_type": "sha256",
+      "iso_checksum": "29a8b9009509b39d542ecb229787cdf48f05e739a932289de9e9858d7c487c80",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "shutdown_command": "echo 'vagrant'|sudo -S shutdown -P now",
+      "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+      "virtualbox_version_file": ".vbox_version",
+      "vm_name": "garden-lite",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--memory",
+          "1024"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--cpus",
+          "2"
+        ]
+      ]
+    }
+  ],
+  "post-processors": [[
+    {
+      "output": "builds/garden-lite.box",
+      "type": "vagrant"
+    },
+    {
+      "type": "vagrant-cloud",
+      "access_token": "{{user `vagrant_cloud_access_key`}}",
+      "box_tag": "{{user `vagrant_box_tag`}}",
+      "version": "{{user `version`}}"
+    }
+  ]]
+}

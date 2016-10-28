@@ -1,0 +1,7 @@
+set daemon 10
+set logfile /var/log/monit.log
+
+set httpd port 2822 and use address 127.0.0.1
+  allow localhost
+
+include /var/vcap/jobs/garden/monit
