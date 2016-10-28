@@ -4,3 +4,4 @@
 *.vmdk
 *.ovf
 *.vdi
+.vagrant
